@@ -9,6 +9,8 @@ const {
     SIGAA_PASSWORD
 } = process.env;
 
+const OUTPUT_FILE_PATH = `data/forum-pages-${INITIAL_FORUM_PAGE}-${TERMINAL_FORUM_PAGE}.txt`;
+
 async function getPageMessages(page) {
     return await page.evaluate(() => {
         const forumTitle = document.querySelector('h2').innerText.split("Portal do Discente > Discussão sobre ")[1];
@@ -62,7 +64,7 @@ async function getPageMessages(page) {
                 page.waitForNavigation({ waitUntil: 'networkidle2' })
             ]);
             const msgs = await getPageMessages(page);
-            fs.appendFileSync(`data/forum-pages-${INITIAL_FORUM_PAGE}-${TERMINAL_FORUM_PAGE}.txt`, msgs.join('\n*-delimit-msg-*\n'));
+            fs.appendFileSync(OUTPUT_FILE_PATH, msgs.join('\n*-delimit-msg-*\n'));
             let nextPageButton = await page.$("a[id*='j_id_jsp_454333105_172:pageNext']");
             while (nextPageButton) {
                 await Promise.all([
@@ -70,7 +72,7 @@ async function getPageMessages(page) {
                     page.waitForNavigation({ waitUntil: 'networkidle2' })
                 ]);
                 const msgsNextPage = await getPageMessages(page);
-                fs.appendFileSync('forum.txt', msgsNextPage.join('\n*-delimit-msg-*\n'));
+                fs.appendFileSync(OUTPUT_FILE_PATH, msgsNextPage.join('\n*-delimit-msg-*\n'));
                 msgs.push(...msgsNextPage);
                 nextPageButton = await page.$("a[id*='j_id_jsp_454333105_172:pageNext']");
             }
