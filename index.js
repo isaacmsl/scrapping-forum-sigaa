@@ -47,7 +47,7 @@ async function getPageMessages(page) {
     ]);
 
     const allMsgs = [];
-    for (let pageIndex = INITIAL_FORUM_PAGE; pageIndex <= TERMINAL_FORUM_PAGE; ++pageIndex) {
+    for (let pageIndex = Number(INITIAL_FORUM_PAGE); pageIndex <= Number(TERMINAL_FORUM_PAGE); ++pageIndex) {
         console.log(`Getting page ${pageIndex}`);
         const selectPageForum = await page.$("select");
         await Promise.all([
