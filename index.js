@@ -2,6 +2,13 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 require('dotenv').config();
 
+const {
+    INITIAL_FORUM_PAGE,
+    TERMINAL_FORUM_PAGE,
+    SIGAA_USERNAME,
+    SIGAA_PASSWORD
+} = process.env;
+
 async function getPageMessages(page) {
     return await page.evaluate(() => {
         const forumTitle = document.querySelector('h2').innerText.split("Portal do Discente > Discussão sobre ")[1];
@@ -24,8 +31,8 @@ async function getPageMessages(page) {
 
     await page.goto('https://sigaa.ufrn.br/sigaa/portais/discente/discente.jsf');
 
-    await page.type("#username", process.env.SIGAA_USERNAME);
-    await page.type("#password", process.env.SIGAA_PASSWORD);
+    await page.type("#username", SIGAA_USERNAME);
+    await page.type("#password", SIGAA_PASSWORD);
 
     await Promise.all([
         page.click("button"),
@@ -38,11 +45,13 @@ async function getPageMessages(page) {
     ]);
 
     const allMsgs = [];
-    let nextPageTopic = await page.$("input[src='/sigaa/img/avancar.gif']");
-    let pageIndex = 0;
-    while (nextPageTopic) {
-        ++pageIndex;
-        console.log(`Page ${pageIndex}...`);
+    for (let pageIndex = INITIAL_FORUM_PAGE; pageIndex <= TERMINAL_FORUM_PAGE; ++pageIndex) {
+        console.log(`Getting page ${pageIndex}`);
+        const selectPageForum = await page.$("select");
+        await Promise.all([
+            selectPageForum.select(`${pageIndex-1}`),
+            page.waitForNavigation({ waitUntil: 'networkidle2' })
+        ]);
         let topics = await page.$$("[id*='listagem:mostrar']");
         for (let i = 0; i < topics.length; i++) {
             await page.waitForSelector("[id*='listagem:mostrar']");
@@ -53,7 +62,7 @@ async function getPageMessages(page) {
                 page.waitForNavigation({ waitUntil: 'networkidle2' })
             ]);
             const msgs = await getPageMessages(page);
-            fs.appendFileSync('forum.txt', msgs.join('\n*-delimit-msg-*\n'));
+            fs.appendFileSync(`data/forum-pages-${INITIAL_FORUM_PAGE}-${TERMINAL_FORUM_PAGE}.txt`, msgs.join('\n*-delimit-msg-*\n'));
             let nextPageButton = await page.$("a[id*='j_id_jsp_454333105_172:pageNext']");
             while (nextPageButton) {
                 await Promise.all([
@@ -74,11 +83,6 @@ async function getPageMessages(page) {
                 ]);
             }
         }
-        nextPageTopic = await page.$("input[src='/sigaa/img/avancar.gif']");
-        await Promise.all([
-            nextPageTopic.click(),
-            page.waitForNavigation({ waitUntil: 'networkidle2' })
-        ]);
     }
 
     await browser.close();
